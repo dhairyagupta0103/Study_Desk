@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5f1">
+  <meta name="description" content="A calm place to organize schoolwork and study one step at a time.">
+  <title>Study Desk — your learning, in one place</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#overview" aria-label="Study Desk home"><span class="brand-mark">S</span><span>study<span class="brand-light">desk</span></span></a>
+      <div class="sidebar-label">YOUR SPACE</div>
+      <nav class="nav-list" aria-label="Main navigation">
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">◫</span>Overview</button>
+        <button class="nav-item" data-view="work"><span class="nav-icon">▤</span>My work <span class="nav-count" id="nav-count">0</span></button>
+        <button class="nav-item" data-view="study"><span class="nav-icon">✳</span>Study room</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="tip-card"><span class="tip-spark">✦</span><strong>Small steps count.</strong><p>One focused 20-minute session can make a big difference.</p><button id="tip-start">Start a focus session <span>↗</span></button></div>
+        <div class="privacy-note"><span class="lock-icon">♧</span><span>Your work stays on this device.</span></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar"><button class="mobile-menu" id="mobile-menu" aria-label="Open navigation">☰</button><div class="breadcrumb">My learning <span>/</span> <b id="crumb-current">Overview</b></div><div class="topbar-right"><span class="today-label" id="today-label"></span><div class="avatar">✿</div></div></header>
+
+      <section class="view active" id="view-overview">
+        <div class="welcome-row"><div><div class="eyebrow"><span class="live-dot"></span> YOUR STUDY SPACE</div><h1>Make room to <em>learn.</em></h1><p class="welcome-copy">Keep track of what’s on your plate, then take it one step at a time.</p></div><button class="button button-primary" data-open-add><span>＋</span> Add schoolwork</button></div>
+        <div class="hero-grid">
+          <article class="focus-card"><div class="focus-orbit orbit-one"></div><div class="focus-orbit orbit-two"></div><div class="focus-card-content"><span class="focus-kicker">A LITTLE PROGRESS ADDS UP</span><h2>What will you<br>work on today?</h2><p>Choose one thing. We’ll help you find a good first step.</p><button class="button button-cream" data-view-link="study">Go to study room <span>↗</span></button></div><div class="focus-illustration" aria-hidden="true"><span class="sun">✳</span><span class="book">▰</span><span class="spark s1">✦</span><span class="spark s2">·</span></div></article>
+          <article class="stats-card"><div class="card-heading"><span class="mini-icon mint">◷</span><span>YOUR WEEK</span><span class="heading-dots">···</span></div><div class="week-number"><strong id="week-done">0</strong><span>tasks done</span></div><div class="week-chart" id="week-chart" aria-label="Tasks completed this week"></div><div class="week-caption"><span class="legend-dot"></span>Finished work <span class="chart-days">MON — SUN</span></div></article>
+        </div>
+        <div class="section-row"><div><div class="eyebrow">UP NEXT</div><h2 class="section-title">Your schoolwork <span class="soft-count" id="work-count">0</span></h2></div><button class="text-button" data-view-link="work">See all work <span>→</span></button></div>
+        <div class="work-list" id="overview-work"></div>
+        <div class="lower-grid"><article class="nudge-card"><div class="nudge-icon">✎</div><div><span class="eyebrow">A GENTLE REMINDER</span><h3>You don’t have to do it all at once.</h3><p>Pick the next small step. The rest can wait its turn.</p></div><span class="nudge-sprig">✳</span></article><article class="quick-card"><div><span class="eyebrow">READY TO PRACTISE?</span><h3>Revisit something you learned.</h3><p>Use a topic to make your own mini practice plan.</p></div><button class="round-arrow" data-view-link="study" aria-label="Open study room">↗</button></article></div>
+      </section>
+
+      <section class="view" id="view-work">
+        <div class="page-heading"><div><div class="eyebrow">YOUR TASK LIST</div><h1>My <em>schoolwork.</em></h1><p class="welcome-copy">Gather everything here. Then decide what to tackle first.</p></div><button class="button button-primary" data-open-add><span>＋</span> Add schoolwork</button></div>
+        <div class="filter-row"><div class="filter-pills" role="group" aria-label="Filter schoolwork"><button class="filter-pill active" data-filter="all">All <span id="filter-all">0</span></button><button class="filter-pill" data-filter="open">To do <span id="filter-open">0</span></button><button class="filter-pill" data-filter="done">Done <span id="filter-done">0</span></button></div><label class="sort-select">Sort by <select id="sort-select"><option value="due">Due date</option><option value="created">Recently added</option></select></label></div>
+        <div class="work-list full-list" id="full-work"></div>
+      </section>
+
+      <section class="view" id="view-study">
+        <div class="page-heading"><div><div class="eyebrow">YOUR QUIET CORNER</div><h1>Study <em>room.</em></h1><p class="welcome-copy">Choose a topic and make a plan to understand it, remember it, and check what you know.</p></div><div class="study-badge">✳ &nbsp; Learn at your pace</div></div>
+        <div class="study-layout"><div class="study-main">
+          <article class="coach-card"><div class="coach-top"><div><div class="eyebrow">STUDY COACH</div><h2>What are you learning?</h2><p>Start with a subject and topic. We’ll make a simple practice plan.</p></div><div class="coach-doodle" aria-hidden="true">✳</div></div><form id="topic-form" class="topic-form"><label for="topic-input">SUBJECT &amp; TOPIC</label><div class="topic-input-row"><input id="topic-input" type="text" maxlength="100" placeholder="e.g. Science · the water cycle" required><button class="button button-primary" type="submit">Make my plan <span>→</span></button></div></form></article>
+          <div id="study-plan" class="study-plan hidden" aria-live="polite"></div>
+          <article class="method-card"><div class="method-symbol">✦</div><div><span class="eyebrow">A GOOD WAY TO STUDY</span><h3>Try remembering before rereading.</h3><p>Close your notes and write down what you can recall. Then check what you missed. This helps you spot what to practise next.</p></div><span class="method-number">01</span></article>
+        </div><aside class="focus-side"><div class="timer-card"><div class="timer-top"><span class="eyebrow">FOCUS TIMER</span><span class="timer-leaf">✳</span></div><p>One thing at a time.</p><div class="timer-display" id="timer-display">20<span>:00</span></div><div class="timer-progress"><div id="timer-progress"></div></div><div class="timer-caption" id="timer-caption">20 minutes of focus</div><div class="timer-controls"><button class="button button-primary timer-button" id="timer-toggle">Start focus</button><button class="timer-reset" id="timer-reset" aria-label="Reset timer">↻</button></div><div class="timer-note">Take a short break when you’re done.</div></div><div class="coach-note"><span>✦</span><p>Need help with a question? Ask someone to give you a hint first, then try the next step yourself.</p></div></aside></div>
+      </section>
+      <footer class="app-footer"><span>Made for curious minds <span class="footer-star">✳</span></span><span>Small steps, steady progress.</span></footer>
+    </main>
+  </div>
+
+  <dialog class="add-dialog" id="add-dialog"><form method="dialog" id="task-form"><div class="dialog-top"><div><div class="eyebrow">ADD TO YOUR LIST</div><h2>What do you need to do?</h2></div><button class="dialog-close" value="cancel" aria-label="Close">×</button></div><label class="field-label" for="task-title">ASSIGNMENT OR TASK</label><input class="field-control" id="task-title" maxlength="100" placeholder="e.g. Finish maths worksheet" required><div class="form-two"><div><label class="field-label" for="task-subject">SUBJECT</label><select class="field-control" id="task-subject"><option>Maths</option><option>Science</option><option>English</option><option>Social Studies</option><option>Languages</option><option>Art</option><option>Other</option></select></div><div><label class="field-label" for="task-due">DUE DATE <span class="optional">(optional)</span></label><input class="field-control" id="task-due" type="date"></div></div><label class="field-label" for="task-notes">NOTES <span class="optional">(optional)</span></label><textarea class="field-control" id="task-notes" rows="3" maxlength="400" placeholder="Anything to remember? Which page, questions, or materials?"></textarea><div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-primary" id="save-task" value="default">Add to my work <span>→</span></button></div><p class="form-private">Saved only in this browser on this device.</p></form></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
+
