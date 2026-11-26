@@ -16,6 +16,7 @@
   let saveStatusTimeout;
   let quickAddPending = false;
   let currentPuzzle = null;
+  let currentPuzzleIndex = 0;
   let quizState = null;
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -151,26 +152,50 @@
     openAddDialog();
   }
   const puzzleData = {
-    number: { kind: 'NUMBER PATTERN', question: 'What number comes next?  2, 4, 8, 16, ___', answers: ['32'], hint: 'Each number is double the one before.' },
-    word: { kind: 'WORD SCRAMBLE', question: 'Put these letters in order to make a word:  L P A E N', answers: ['plane'], hint: 'It can fly through the sky.' },
-    riddle: { kind: 'MINI RIDDLE', question: 'What has hands but cannot clap?', answers: ['clock', 'a clock'], hint: 'You can look at it to tell the time.' }
+    number: [
+      { kind: 'NUMBER PATTERN', question: 'What number comes next?  2, 4, 8, 16, ___', answers: ['32'], hint: 'Each number is double the one before.' },
+      { kind: 'NUMBER PATTERN', question: 'What number comes next?  3, 6, 9, 12, ___', answers: ['15'], hint: 'Add the same amount each time.' },
+      { kind: 'NUMBER PATTERN', question: 'What number comes next?  1, 3, 6, 10, 15, ___', answers: ['21'], hint: 'The amount added goes up by one each time.' },
+      { kind: 'NUMBER PATTERN', question: 'What number comes next?  5, 10, 20, 40, ___', answers: ['80'], hint: 'Each number is double the one before.' },
+      { kind: 'NUMBER PATTERN', question: 'What number comes next?  100, 90, 80, ___', answers: ['70'], hint: 'Subtract ten each time.' }
+    ],
+    word: [
+      { kind: 'WORD SCRAMBLE', question: 'Put these letters in order to make a word:  L P A E N', answers: ['plane'], hint: 'It can fly through the sky.' },
+      { kind: 'WORD SCRAMBLE', question: 'Put these letters in order to make a word:  E L P P A', answers: ['apple'], hint: 'It is a crunchy fruit.' },
+      { kind: 'WORD SCRAMBLE', question: 'Put these letters in order to make a word:  O O B K', answers: ['book'], hint: 'You can read a story in one.' },
+      { kind: 'WORD SCRAMBLE', question: 'Put these letters in order to make a word:  T A E R W', answers: ['water'], hint: 'You drink it when you are thirsty.' },
+      { kind: 'WORD SCRAMBLE', question: 'Put these letters in order to make a word:  O H C O S L', answers: ['school'], hint: 'A place where you learn.' }
+    ],
+    riddle: [
+      { kind: 'MINI RIDDLE', question: 'What gets wetter the more it dries?', answers: ['towel', 'a towel'], hint: 'You might use one after a bath.' },
+      { kind: 'MINI RIDDLE', question: 'What has many keys but cannot open a lock?', answers: ['piano', 'a piano'], hint: 'You can play music on it.' },
+      { kind: 'MINI RIDDLE', question: 'What has to be broken before you can use it?', answers: ['egg', 'an egg'], hint: 'You might eat one for breakfast.' },
+      { kind: 'MINI RIDDLE', question: 'What has one eye but cannot see?', answers: ['needle', 'a needle'], hint: 'It helps sew clothes.' },
+      { kind: 'MINI RIDDLE', question: 'What has a neck but no head?', answers: ['bottle', 'a bottle'], hint: 'You can pour water from it.' }
+    ]
   };
-  function openPuzzle(key) {
-    const puzzle = puzzleData[key]; if (!puzzle) return;
+  function openPuzzle(key, index = 0) {
+    const puzzles = puzzleData[key]; if (!puzzles) return;
     currentPuzzle = key;
-    $('#puzzle-kind').textContent = puzzle.kind;
+    currentPuzzleIndex = index % puzzles.length;
+    const puzzle = puzzles[currentPuzzleIndex];
+    $('#puzzle-kind').textContent = `${puzzle.kind} · ${currentPuzzleIndex + 1} OF ${puzzles.length}`;
     $('#puzzle-prompt').textContent = puzzle.question;
     $('#puzzle-answer').value = '';
     $('#puzzle-feedback').textContent = '';
     $('#puzzle-feedback').classList.remove('is-correct');
+    $('#puzzle-next').textContent = currentPuzzle === 'riddle' ? 'Next riddle →' : 'Next puzzle →';
+    $('#puzzle-next').hidden = false;
     $('#puzzle-picker').hidden = true;
     $('#puzzle-play').hidden = false;
     $('#puzzle-answer').focus();
   }
   function resetPuzzlePicker() {
     currentPuzzle = null;
+    currentPuzzleIndex = 0;
     $('#puzzle-picker').hidden = false;
     $('#puzzle-play').hidden = true;
+    $('#puzzle-next').hidden = true;
   }
   function makeEmpty(message, detail, action = true) {
     const wrap = document.createElement('div'); wrap.className = 'empty-state';
@@ -489,9 +514,13 @@
   $('#puzzle-close').addEventListener('click', () => { resetPuzzlePicker(); $('#puzzle-dialog').close(); });
   $('#puzzle-back').addEventListener('click', resetPuzzlePicker);
   $$('[data-puzzle]').forEach(button => button.addEventListener('click', () => openPuzzle(button.dataset.puzzle)));
+  $('#puzzle-next').addEventListener('click', () => {
+    if (!currentPuzzle) return;
+    openPuzzle(currentPuzzle, (currentPuzzleIndex + 1) % puzzleData[currentPuzzle].length);
+  });
   $('#puzzle-answer-form').addEventListener('submit', event => {
     event.preventDefault();
-    const puzzle = puzzleData[currentPuzzle]; if (!puzzle) return;
+    const puzzle = puzzleData[currentPuzzle]?.[currentPuzzleIndex]; if (!puzzle) return;
     const answer = $('#puzzle-answer').value.trim().toLowerCase().replace(/[.!?]+$/, '');
     const feedback = $('#puzzle-feedback');
     if (puzzle.answers.includes(answer)) {
