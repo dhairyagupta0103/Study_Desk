@@ -17,7 +17,7 @@ Tasks, the last topic, and the optional profile name are saved automatically in 
 
 ## Publish it
 
-The site is made from static files, so it can be hosted by a static website service. Upload `index.html`, `styles.css`, and `app.js` together; keep them in the same folder. `README.md` is for setup notes and is not needed by the site.
+The site is made from static files, so it can be hosted by a static website service. Upload `index.html`, `styles.css`, `app.js`, and `study-icon.svg` together; keep them in the same folder. `README.md` is for setup notes and is not needed by the site.
 
 ## Current scope
 
