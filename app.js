@@ -14,6 +14,8 @@
   let timerInterval = null;
   let toastTimeout;
   let saveStatusTimeout;
+  let quickAddPending = false;
+  let currentPuzzle = null;
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -88,6 +90,84 @@
     const daysAway = Math.round((new Date(`${due}T00:00:00`) - new Date(`${isoToday}T00:00:00`)) / 86400000);
     if (daysAway < 0) return `${Math.abs(daysAway)} day${Math.abs(daysAway) === 1 ? '' : 's'} overdue`;
     return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  function guessSubject(text) {
+    const value = text.toLowerCase();
+    const rules = [
+      ['Maths', /\b(math|maths|algebra|fraction|fractions|geometry|multiplication|division|equation)\b/],
+      ['Science', /\b(science|planet|planets|water cycle|solar system|gravity|experiment|ecosystem)\b/],
+      ['Social Studies', /\b(history|geography|social studies|civics|map|country)\b/],
+      ['Languages', /\b(hindi|spanish|french|language|verb conjugation)\b/],
+      ['English', /\b(english|essay|poem|poetry|grammar|reading|book report|story|vocabulary)\b/],
+      ['Art', /\b(art|drawing|painting|poster|craft)\b/]
+    ];
+    return rules.find(([, pattern]) => pattern.test(value))?.[0] || 'Other';
+  }
+  function guessDueDate(text) {
+    const value = text.toLowerCase();
+    const iso = value.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+    if (iso && !Number.isNaN(new Date(`${iso[1]}T12:00:00`).getTime())) return iso[1];
+    if (/\btoday\b/.test(value)) return isoToday;
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    if (/\btomorrow\b/.test(value)) return localDate(tomorrow);
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayMatch = value.match(/\b(next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+    if (dayMatch) {
+      const target = days.indexOf(dayMatch[2]);
+      let offset = (target - today.getDay() + 7) % 7;
+      if (dayMatch[1]) offset += offset === 0 ? 7 : 7;
+      const due = new Date(today); due.setDate(due.getDate() + offset);
+      return localDate(due);
+    }
+    const monthMatch = value.match(/\b(?:due|by)\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})\b/);
+    if (monthMatch) {
+      const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const month = months.indexOf(monthMatch[1].slice(0, 3)); const day = Number(monthMatch[2]);
+      const candidate = new Date(today.getFullYear(), month, day, 12);
+      if (candidate.getMonth() === month && candidate.getDate() === day) {
+        if (candidate < today) candidate.setFullYear(candidate.getFullYear() + 1);
+        return localDate(candidate);
+      }
+    }
+    return '';
+  }
+  function organizeQuickAdd() {
+    const raw = $('#quick-add-input').value.trim();
+    if (!raw) { showToast('Type or paste your schoolwork first.'); $('#quick-add-input').focus(); return; }
+    const duePattern = /\s+\b(?:due|by)\s+(?:today|tomorrow|(?:next\s+)?(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday))\b[^.!?]*/i;
+    const isoPattern = /\s+\b(?:due|by)\s+20\d{2}-\d{2}-\d{2}\b/i;
+    const monthPattern = /\s+\b(?:due|by)\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+\d{1,2}\b/i;
+    let title = raw.replace(duePattern, '').replace(isoPattern, '').replace(monthPattern, '').replace(/[\s,;:.!?]+$/, '').trim();
+    if (!title) title = raw;
+    if (title.length > 100) title = `${title.slice(0, 97).trimEnd()}…`;
+    $('#task-title').value = title;
+    $('#task-subject').value = guessSubject(raw);
+    $('#task-due').value = guessDueDate(raw);
+    $('#task-notes').value = raw;
+    quickAddPending = true;
+    openAddDialog();
+  }
+  const puzzleData = {
+    number: { kind: 'NUMBER PATTERN', question: 'What number comes next?  2, 4, 8, 16, ___', answers: ['32'], hint: 'Each number is double the one before.' },
+    word: { kind: 'WORD SCRAMBLE', question: 'Put these letters in order to make a word:  L P A E N', answers: ['plane'], hint: 'It can fly through the sky.' },
+    riddle: { kind: 'MINI RIDDLE', question: 'What has hands but cannot clap?', answers: ['clock', 'a clock'], hint: 'You can look at it to tell the time.' }
+  };
+  function openPuzzle(key) {
+    const puzzle = puzzleData[key]; if (!puzzle) return;
+    currentPuzzle = key;
+    $('#puzzle-kind').textContent = puzzle.kind;
+    $('#puzzle-prompt').textContent = puzzle.question;
+    $('#puzzle-answer').value = '';
+    $('#puzzle-feedback').textContent = '';
+    $('#puzzle-feedback').classList.remove('is-correct');
+    $('#puzzle-picker').hidden = true;
+    $('#puzzle-play').hidden = false;
+    $('#puzzle-answer').focus();
+  }
+  function resetPuzzlePicker() {
+    currentPuzzle = null;
+    $('#puzzle-picker').hidden = false;
+    $('#puzzle-play').hidden = true;
   }
   function makeEmpty(message, detail, action = true) {
     const wrap = document.createElement('div'); wrap.className = 'empty-state';
@@ -271,10 +351,12 @@
   $('#sort-select').addEventListener('change', event => { sortMode = event.target.value; drawTasks(); });
   $('#task-form').addEventListener('submit', event => {
     event.preventDefault();
-    if (event.submitter && event.submitter.value === 'cancel') { $('#add-dialog').close(); return; }
+    if (event.submitter && event.submitter.value === 'cancel') { $('#add-dialog').close(); quickAddPending = false; return; }
     const title = $('#task-title').value.trim(); if (!title) return;
     state.tasks.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, title, subject: $('#task-subject').value, due: $('#task-due').value, notes: $('#task-notes').value.trim(), done: false, created: Date.now(), steps: [] });
     saveState(); drawTasks(); $('#add-dialog').close(); event.target.reset();
+    if (quickAddPending) $('#quick-add-input').value = '';
+    quickAddPending = false;
     showView('work'); showToast('Added to your schoolwork.');
   });
   $('#topic-form').addEventListener('submit', event => {
@@ -286,6 +368,30 @@
     else startTimer();
   });
   $('#timer-reset').addEventListener('click', () => { timerRunning = false; clearInterval(timerInterval); timerSeconds = 20 * 60; setTimerDisplay(); });
+  $('#quick-add-organize').addEventListener('click', organizeQuickAdd);
+  $('#quick-add-input').addEventListener('keydown', event => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') organizeQuickAdd();
+  });
+  $('#puzzle-open').addEventListener('click', () => {
+    resetPuzzlePicker();
+    $('#puzzle-dialog').showModal();
+  });
+  $('#puzzle-close').addEventListener('click', () => { resetPuzzlePicker(); $('#puzzle-dialog').close(); });
+  $('#puzzle-back').addEventListener('click', resetPuzzlePicker);
+  $$('[data-puzzle]').forEach(button => button.addEventListener('click', () => openPuzzle(button.dataset.puzzle)));
+  $('#puzzle-answer-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const puzzle = puzzleData[currentPuzzle]; if (!puzzle) return;
+    const answer = $('#puzzle-answer').value.trim().toLowerCase().replace(/[.!?]+$/, '');
+    const feedback = $('#puzzle-feedback');
+    if (puzzle.answers.includes(answer)) {
+      feedback.textContent = 'That’s right! Nice solving. ✨';
+      feedback.classList.add('is-correct');
+    } else {
+      feedback.textContent = `Not quite—try again. Hint: ${puzzle.hint}`;
+      feedback.classList.remove('is-correct');
+    }
+  });
   $('#profile-open').addEventListener('click', () => {
     $('#profile-name').value = state.profileName;
     $('#profile-dialog').showModal();
