@@ -14,8 +14,9 @@ Open `index.html` in a web browser. No account, server, or paid service is neede
 - Add an optional profile name shown in the page header.
 - Paste schoolwork into Quick Add to get a subject, due-date, and task suggestion to review.
 - Open Puzzle Box for a number pattern, word scramble, or riddle.
+- Make question-and-answer flashcards, tap to flip them, and try a short quiz.
 
-Tasks, the last topic, and the optional profile name are saved automatically in this browser on this device. A saved-status label confirms changes, and open tabs refresh when the saved data changes. They do not sync to other devices and are not uploaded to an AI service. Clearing this browser's site data will erase the saved information.
+Tasks, flashcards, the last topic, and the optional profile name are saved automatically in this browser on this device. A saved-status label confirms changes, and open tabs refresh when the saved data changes. They do not sync to other devices and are not uploaded to an AI service. Clearing this browser's site data will erase the saved information.
 
 ## Publish it
 
