@@ -13,6 +13,7 @@
   let timerRunning = false;
   let timerInterval = null;
   let toastTimeout;
+  let saveStatusTimeout;
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -28,12 +29,48 @@
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      return { tasks: Array.isArray(saved.tasks) ? saved.tasks : [], topic: typeof saved.topic === 'string' ? saved.topic : '' };
+      return {
+        tasks: Array.isArray(saved.tasks) ? saved.tasks : [],
+        topic: typeof saved.topic === 'string' ? saved.topic : '',
+        profileName: typeof saved.profileName === 'string' ? saved.profileName : ''
+      };
     } catch { return { tasks: [], topic: '' }; }
   }
   function saveState() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-    catch { showToast('This browser could not save your changes.'); }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateSaveIndicator('Saved just now');
+      clearTimeout(saveStatusTimeout);
+      saveStatusTimeout = setTimeout(() => updateSaveIndicator('Saved on this device'), 2400);
+    } catch {
+      updateSaveIndicator('Could not save');
+      showToast('This browser could not save your changes.');
+    }
+  }
+  function updateSaveIndicator(message) {
+    const indicator = $('#save-indicator');
+    if (!indicator) return;
+    $('#save-text').textContent = message;
+    indicator.classList.toggle('is-saving', message === 'Saving…' || message === 'Could not save');
+  }
+  function updateProfileButton() {
+    const button = $('#profile-open');
+    if (!button) return;
+    const name = state.profileName.trim();
+    button.textContent = name ? name.charAt(0).toUpperCase() : '✿';
+    button.setAttribute('aria-label', name ? `Manage ${name}'s profile` : 'Create or manage profile');
+  }
+  function refreshFromStorage() {
+    const latest = loadState();
+    if (JSON.stringify(latest) === JSON.stringify(state)) return;
+    state = latest;
+    drawTasks();
+    updateProfileButton();
+    const topicInput = $('#topic-input');
+    if (document.activeElement !== topicInput) topicInput.value = state.topic;
+    updateSaveIndicator('Updated in another tab');
+    clearTimeout(saveStatusTimeout);
+    saveStatusTimeout = setTimeout(() => updateSaveIndicator('Saved on this device'), 2400);
   }
   function showToast(message) {
     const toast = $('#toast');
@@ -249,10 +286,30 @@
     else startTimer();
   });
   $('#timer-reset').addEventListener('click', () => { timerRunning = false; clearInterval(timerInterval); timerSeconds = 20 * 60; setTimerDisplay(); });
+  $('#profile-open').addEventListener('click', () => {
+    $('#profile-name').value = state.profileName;
+    $('#profile-dialog').showModal();
+    $('#profile-name').focus();
+  });
+  $('#profile-close').addEventListener('click', () => $('#profile-dialog').close());
+  $('#profile-cancel').addEventListener('click', () => $('#profile-dialog').close());
+  $('#profile-form').addEventListener('submit', event => {
+    event.preventDefault();
+    state.profileName = $('#profile-name').value.trim();
+    saveState();
+    updateProfileButton();
+    $('#profile-dialog').close();
+    showToast(state.profileName ? 'Profile name saved on this device.' : 'Profile name cleared.');
+  });
+  window.addEventListener('storage', event => {
+    if (event.key === STORAGE_KEY || event.key === null) refreshFromStorage();
+  });
+  window.addEventListener('focus', refreshFromStorage);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFromStorage(); });
 
   const initialView = location.hash.replace('#', '');
   showView(['overview', 'work', 'study'].includes(initialView) ? initialView : 'overview');
   if (state.topic) $('#topic-input').value = state.topic;
-  drawTasks(); setTimerDisplay();
+  updateProfileButton(); drawTasks(); setTimerDisplay();
 })();
 
