@@ -16,6 +16,7 @@
   let saveStatusTimeout;
   let quickAddPending = false;
   let currentPuzzle = null;
+  let quizState = null;
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -33,10 +34,11 @@
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       return {
         tasks: Array.isArray(saved.tasks) ? saved.tasks : [],
+        flashcards: Array.isArray(saved.flashcards) ? saved.flashcards : [],
         topic: typeof saved.topic === 'string' ? saved.topic : '',
         profileName: typeof saved.profileName === 'string' ? saved.profileName : ''
       };
-    } catch { return { tasks: [], topic: '' }; }
+    } catch { return { tasks: [], flashcards: [], topic: '', profileName: '' }; }
   }
   function saveState() {
     try {
@@ -67,6 +69,7 @@
     if (JSON.stringify(latest) === JSON.stringify(state)) return;
     state = latest;
     drawTasks();
+    drawFlashcards();
     updateProfileButton();
     const topicInput = $('#topic-input');
     if (document.activeElement !== topicInput) topicInput.value = state.topic;
@@ -244,6 +247,84 @@
     else fullWork.append(makeEmpty(currentFilter === 'done' ? 'No finished work just yet.' : 'No tasks in this view.', currentFilter === 'done' ? 'When you finish something, mark it done with the circle.' : 'Everything on your list is finished. Nice work!', false));
     drawWeek();
   }
+  function drawFlashcards() {
+    const deck = $('#flashcard-deck');
+    const cards = Array.isArray(state.flashcards) ? state.flashcards : [];
+    $('#flashcard-count').textContent = String(cards.length);
+    $('#flashcard-nav-count').textContent = String(cards.length);
+    $('#quiz-start').disabled = cards.length === 0;
+    deck.replaceChildren();
+    if (!cards.length) {
+      const empty = document.createElement('div'); empty.className = 'flashcard-empty';
+      const title = document.createElement('strong'); title.textContent = 'Your deck is empty for now.';
+      const copy = document.createElement('p'); copy.textContent = 'Make a card with a question on the front and an answer on the back.';
+      empty.append(title, copy); deck.append(empty); return;
+    }
+    cards.forEach(card => {
+      const item = document.createElement('article'); item.className = 'flashcard-entry';
+      const face = document.createElement('button'); face.type = 'button'; face.className = 'flashcard-face'; face.setAttribute('aria-expanded', 'false');
+      const side = document.createElement('span'); side.className = 'flashcard-side'; side.textContent = 'QUESTION · TAP TO FLIP';
+      const text = document.createElement('span'); text.className = 'flashcard-face-text'; text.textContent = card.question;
+      face.append(side, text);
+      let showingAnswer = false;
+      face.addEventListener('click', () => {
+        showingAnswer = !showingAnswer;
+        face.classList.toggle('is-flipped', showingAnswer);
+        face.setAttribute('aria-expanded', String(showingAnswer));
+        side.textContent = showingAnswer ? 'ANSWER · TAP TO FLIP BACK' : 'QUESTION · TAP TO FLIP';
+        text.textContent = showingAnswer ? card.answer : card.question;
+      });
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'flashcard-delete'; remove.textContent = '×';
+      remove.setAttribute('aria-label', `Delete flashcard: ${card.question}`);
+      remove.addEventListener('click', () => {
+        state.flashcards = state.flashcards.filter(savedCard => savedCard.id !== card.id);
+        saveState(); drawFlashcards(); showToast('Flashcard removed.');
+      });
+      item.append(face, remove); deck.append(item);
+    });
+  }
+  function shuffledCards(cards) {
+    const result = [...cards];
+    for (let i = result.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+  function startFlashcardQuiz() {
+    if (!state.flashcards.length) { showToast('Add a flashcard first, then start a quiz.'); return; }
+    quizState = { cards: shuffledCards(state.flashcards).slice(0, 5), index: 0, score: 0 };
+    $('#flashcard-workspace').classList.add('hidden');
+    $('#flashcard-quiz').hidden = false;
+    renderQuizCard();
+  }
+  function renderQuizCard() {
+    if (!quizState) return;
+    const { cards, index, score } = quizState;
+    const form = $('#quiz-form');
+    const next = $('#quiz-next');
+    const restart = $('#quiz-restart');
+    $('#quiz-feedback').textContent = '';
+    $('#quiz-feedback').classList.remove('is-correct');
+    next.hidden = true; restart.hidden = true;
+    if (index >= cards.length) {
+      $('#quiz-progress').textContent = 'QUIZ FINISHED';
+      $('#quiz-question').textContent = `You got ${score} out of ${cards.length} right.`;
+      $('#quiz-feedback').textContent = score === cards.length ? 'Brilliant remembering! You can try again or make more cards.' : 'Nice practice. Try the cards again and see what sticks.';
+      form.hidden = true; restart.hidden = false; return;
+    }
+    form.hidden = false;
+    $('#quiz-progress').textContent = `CARD ${index + 1} OF ${cards.length}`;
+    $('#quiz-question').textContent = cards[index].question;
+    $('#quiz-answer').value = '';
+    $('#quiz-check').disabled = false;
+    $('#quiz-answer').focus();
+  }
+  function leaveFlashcardQuiz() {
+    quizState = null;
+    $('#flashcard-quiz').hidden = true;
+    $('#flashcard-workspace').classList.remove('hidden');
+  }
   function drawWeek() {
     const chart = $('#week-chart'); chart.replaceChildren();
     const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -279,7 +360,7 @@
   function showView(name) {
     $$('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
     $$('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === name));
-    const labels = { overview: 'Overview', work: 'My work', study: 'Study room' };
+    const labels = { overview: 'Overview', work: 'My work', study: 'Study room', flashcards: 'Flashcards' };
     $('#crumb-current').textContent = labels[name] || labels.overview;
     history.replaceState(null, '', `#${name}`);
     $('#sidebar').classList.remove('open');
@@ -349,6 +430,35 @@
     $$('.filter-pill').forEach(pill => pill.classList.toggle('active', pill === button)); drawTasks();
   }));
   $('#sort-select').addEventListener('change', event => { sortMode = event.target.value; drawTasks(); });
+  $('#flashcard-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const question = $('#flashcard-question').value.trim();
+    const answer = $('#flashcard-answer').value.trim();
+    if (!question || !answer) return;
+    state.flashcards.unshift({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, question, answer, created: Date.now() });
+    saveState(); drawFlashcards(); event.target.reset(); $('#flashcard-question').focus();
+    showToast('Flashcard saved on this device.');
+  });
+  $('#quiz-start').addEventListener('click', startFlashcardQuiz);
+  $('#quiz-back').addEventListener('click', leaveFlashcardQuiz);
+  $('#quiz-form').addEventListener('submit', event => {
+    event.preventDefault();
+    if (!quizState) return;
+    const card = quizState.cards[quizState.index];
+    const normalize = value => value.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+    const guess = normalize($('#quiz-answer').value);
+    if (!guess) return;
+    const correct = guess === normalize(card.answer);
+    if (correct) quizState.score += 1;
+    const feedback = $('#quiz-feedback');
+    feedback.textContent = correct ? 'That’s right! Nice remembering. ✨' : `Good try. The answer is: ${card.answer}`;
+    feedback.classList.toggle('is-correct', correct);
+    $('#quiz-check').disabled = true;
+    $('#quiz-next').textContent = quizState.index + 1 === quizState.cards.length ? 'See my score →' : 'Next card →';
+    $('#quiz-next').hidden = false;
+  });
+  $('#quiz-next').addEventListener('click', () => { if (!quizState) return; quizState.index += 1; renderQuizCard(); });
+  $('#quiz-restart').addEventListener('click', startFlashcardQuiz);
   $('#task-form').addEventListener('submit', event => {
     event.preventDefault();
     if (event.submitter && event.submitter.value === 'cancel') { $('#add-dialog').close(); quickAddPending = false; return; }
@@ -414,8 +524,8 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFromStorage(); });
 
   const initialView = location.hash.replace('#', '');
-  showView(['overview', 'work', 'study'].includes(initialView) ? initialView : 'overview');
+  showView(['overview', 'work', 'study', 'flashcards'].includes(initialView) ? initialView : 'overview');
   if (state.topic) $('#topic-input').value = state.topic;
-  updateProfileButton(); drawTasks(); setTimerDisplay();
+  updateProfileButton(); drawTasks(); drawFlashcards(); setTimerDisplay();
 })();
 
