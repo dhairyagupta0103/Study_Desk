@@ -383,9 +383,10 @@
     saveState(); drawTasks(); showToast(task.done ? 'Marked done. Nice work!' : 'Back on your list.');
   }
   function showView(name) {
+    if (name !== 'games' && currentPuzzle) resetPuzzlePicker();
     $$('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
     $$('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === name));
-    const labels = { overview: 'Overview', work: 'My work', study: 'Study room', flashcards: 'Flashcards' };
+    const labels = { overview: 'Overview', work: 'My work', study: 'Study room', flashcards: 'Flashcards', games: 'Mind games' };
     $('#crumb-current').textContent = labels[name] || labels.overview;
     history.replaceState(null, '', `#${name}`);
     $('#sidebar').classList.remove('open');
@@ -507,11 +508,6 @@
   $('#quick-add-input').addEventListener('keydown', event => {
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') organizeQuickAdd();
   });
-  $('#puzzle-open').addEventListener('click', () => {
-    resetPuzzlePicker();
-    $('#puzzle-dialog').showModal();
-  });
-  $('#puzzle-close').addEventListener('click', () => { resetPuzzlePicker(); $('#puzzle-dialog').close(); });
   $('#puzzle-back').addEventListener('click', resetPuzzlePicker);
   $$('[data-puzzle]').forEach(button => button.addEventListener('click', () => openPuzzle(button.dataset.puzzle)));
   $('#puzzle-next').addEventListener('click', () => {
@@ -553,7 +549,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFromStorage(); });
 
   const initialView = location.hash.replace('#', '');
-  showView(['overview', 'work', 'study', 'flashcards'].includes(initialView) ? initialView : 'overview');
+  showView(['overview', 'work', 'study', 'flashcards', 'games'].includes(initialView) ? initialView : 'overview');
   if (state.topic) $('#topic-input').value = state.topic;
   updateProfileButton(); drawTasks(); drawFlashcards(); setTimerDisplay();
 })();
