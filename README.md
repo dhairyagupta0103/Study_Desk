@@ -1,2 +1,24 @@
-# Study_Desk
-A simple study space to organize schoolwork, plan study sessions, and track progress.
+# Study Desk
+
+A small, browser-based study organizer for keeping track of schoolwork and practising topics.
+
+## Use it
+
+Open `index.html` in a web browser. No account, server, or paid service is needed.
+
+- Add assignments with a subject, due date, and notes.
+- Open a task to turn it into a short checklist.
+- Mark work complete and see this week's progress.
+- Enter a topic in Study Room for a guided 20-minute practice plan and self-check questions.
+- Use the focus timer when you want a quiet work session.
+
+Tasks and the last topic are saved in this browser on this device. They do not sync to other devices and are not uploaded to an AI service. Clearing this browser's site data will erase the saved list.
+
+## Publish it
+
+The site is made from static files, so it can be hosted by a static website service. Upload `index.html`, `styles.css`, and `app.js` together; keep them in the same folder. `README.md` is for setup notes and is not needed by the site.
+
+## Current scope
+
+Study plans are generated from built-in prompts in the page. There is no AI connection yet, so the site does not read or solve uploaded assignments. The plan helps students practise explaining and recalling what they learned.
+
