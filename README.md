@@ -25,5 +25,5 @@ The site is made from static files, so it can be hosted by a static website serv
 
 ## Current scope
 
-Study plans are generated from built-in prompts in the page. There is no AI connection or online account system yet, so the site does not read or solve uploaded assignments. The profile is only a name on this device; it does not use a password or email. The plan helps students practise explaining and recalling what they learned.
+Study Room uses built-in subject-specific guides, including Hindi and Sanskrit, plus extra tips for some common topics. It does not use AI, so unusual topics get the guide for the selected subject rather than a custom answer. There is no online account system; the profile is only a name on this device and does not use a password or email.
 
