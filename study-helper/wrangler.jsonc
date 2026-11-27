@@ -6,6 +6,9 @@
     "ALLOWED_ORIGIN": "https://dhairyagupta0103.github.io",
     "SITE_HOSTNAME": "dhairyagupta0103.github.io"
   },
+  "ai": {
+    "binding": "AI"
+  },
   "ratelimits": [
     {
       "name": "STUDY_HELPER_LIMITER",
