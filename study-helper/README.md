@@ -2,7 +2,7 @@
 
 This Cloudflare Worker keeps the OpenAI API key and Turnstile secret on the server. Neither secret belongs in `index.html`, `app.js`, `study-helper-config.js`, or any GitHub file.
 
-The helper only receives the notes and question submitted from Study Room. It has no web search or other tools, asks for a quote from the notes, and returns “I can’t find that in your study notes yet” when it cannot find supporting text. The Worker does not save notes or log their contents. Notes are sent to OpenAI to make the answer.
+The helper receives notes only after the student presses a submit button. Study Room sends notes and a question for an answer. Mind Games can send notes to make five puzzles. It has no web search or other tools. Answers and puzzles must include text checked against the submitted notes. The Worker does not save notes or log their contents. Notes are sent to OpenAI to make the answer or puzzles.
 
 ## Set up with an adult
 
