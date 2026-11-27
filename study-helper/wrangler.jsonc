@@ -1,0 +1,17 @@
+{
+  "name": "study-desk-helper",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-27",
+  "vars": {
+    "ALLOWED_ORIGIN": "https://dhairyagupta0103.github.io",
+    "SITE_HOSTNAME": "dhairyagupta0103.github.io"
+  },
+  "ratelimits": [
+    {
+      "name": "STUDY_HELPER_LIMITER",
+      "namespace_id": "846127",
+      "simple": { "limit": 5, "period": 60 }
+    }
+  ]
+}
+
