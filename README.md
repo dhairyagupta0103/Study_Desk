@@ -7,6 +7,7 @@ A small, browser-based study organizer for keeping track of schoolwork and pract
 Open `index.html` in a web browser. No account, server, or paid service is needed.
 
 - Add assignments with a subject, due date, and notes.
+- Delete schoolwork when you no longer need it.
 - Open a task to turn it into a short checklist.
 - Mark work complete and see this week's progress.
 - Enter a topic in Study Room for a guided 20-minute practice plan and self-check questions.
