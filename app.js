@@ -189,7 +189,9 @@
     $('#puzzle-answer').value = '';
     $('#puzzle-feedback').textContent = '';
     $('#puzzle-feedback').classList.remove('is-correct');
-    $('#puzzle-next').textContent = currentPuzzle === 'riddle' ? 'Next riddle →' : 'Next puzzle →';
+    $('#puzzle-evidence').hidden = true;
+    $('#puzzle-evidence').textContent = '';
+    $('#puzzle-next').textContent = currentPuzzle === 'riddle' ? 'Next riddle →' : currentPuzzle === 'ai' ? 'Next study puzzle →' : 'Next puzzle →';
     $('#puzzle-next').hidden = false;
     $('#puzzle-picker').hidden = true;
     $('#puzzle-play').hidden = false;
@@ -411,6 +413,8 @@
     history.replaceState(null, '', `#${name}`);
     $('#sidebar').classList.remove('open');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (name === 'study') mountStudyHelperWidget();
+    if (name === 'games') mountStudyGamesWidget();
   }
   function topicTip(subject, topic) {
     const value = topic.toLowerCase();
@@ -561,52 +565,97 @@
   }
   let studyHelperToken = '';
   let studyHelperWidget = null;
+  let studyGamesToken = '';
+  let studyGamesWidget = null;
+  let helperEndpoint = '';
+  let helperSiteKey = '';
+  let turnstileReady = false;
+  function mountStudyHelperWidget() {
+    if (!turnstileReady || !window.turnstile || studyHelperWidget !== null) return;
+    studyHelperWidget = window.turnstile.render('#study-ai-check', {
+      sitekey: helperSiteKey,
+      action: 'study_help',
+      callback: token => {
+        studyHelperToken = token;
+        $('#study-ai-submit').disabled = false;
+        $('#study-ai-status').textContent = 'Ready. Your notes are sent only when you press Ask my notes.';
+      },
+      'expired-callback': () => {
+        studyHelperToken = ''; $('#study-ai-submit').disabled = true;
+        $('#study-ai-status').textContent = 'The safety check expired. Please complete it again.';
+      },
+      'error-callback': () => {
+        studyHelperToken = ''; $('#study-ai-submit').disabled = true;
+        $('#study-ai-status').textContent = 'The safety check did not work. Please try again.';
+      }
+    });
+  }
+  function mountStudyGamesWidget() {
+    if (!turnstileReady || !window.turnstile || studyGamesWidget !== null) return;
+    studyGamesWidget = window.turnstile.render('#study-games-check', {
+      sitekey: helperSiteKey,
+      action: 'study_games',
+      callback: token => {
+        studyGamesToken = token;
+        $('#study-games-submit').disabled = false;
+        $('#study-games-status').textContent = 'Ready. Your notes are sent only when you press Make five puzzles.';
+      },
+      'expired-callback': () => {
+        studyGamesToken = ''; $('#study-games-submit').disabled = true;
+        $('#study-games-status').textContent = 'The safety check expired. Please complete it again.';
+      },
+      'error-callback': () => {
+        studyGamesToken = ''; $('#study-games-submit').disabled = true;
+        $('#study-games-status').textContent = 'The safety check did not work. Please try again.';
+      }
+    });
+  }
   function helperSetup() {
     const config = window.STUDY_HELPER_CONFIG || {};
     const rawEndpoint = typeof config.endpoint === 'string' ? config.endpoint.trim() : '';
     const siteKey = typeof config.turnstileSiteKey === 'string' ? config.turnstileSiteKey.trim() : '';
     const submit = $('#study-ai-submit');
     const status = $('#study-ai-status');
+    const gamesSubmit = $('#study-games-submit');
+    const gamesStatus = $('#study-games-status');
     if (!rawEndpoint || !siteKey) {
       status.textContent = 'The helper is prepared but not connected yet. An adult can finish the private setup.';
+      gamesStatus.textContent = 'AI puzzles are ready to connect. An adult can finish the private setup.';
       submit.disabled = true;
+      gamesSubmit.disabled = true;
       return;
     }
-    let endpoint;
     try {
       const parsed = new URL(rawEndpoint);
       if (parsed.protocol !== 'https:') throw new Error('HTTPS is required.');
-      endpoint = parsed.toString().replace(/\/+$/, '');
+      helperEndpoint = parsed.toString().replace(/\/+$/, '');
+      helperSiteKey = siteKey;
     } catch {
       status.textContent = 'The helper address needs to be set up correctly.';
+      gamesStatus.textContent = 'The helper address needs to be set up correctly.';
       submit.disabled = true;
+      gamesSubmit.disabled = true;
       return;
     }
     status.textContent = 'Complete the quick safety check before asking.';
+    gamesStatus.textContent = 'Complete the quick safety check before making puzzles.';
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     script.async = true; script.defer = true;
     script.onload = () => {
-      if (!window.turnstile) { status.textContent = 'The safety check did not load. Please try later.'; return; }
-      studyHelperWidget = window.turnstile.render('#study-ai-check', {
-        sitekey: siteKey,
-        action: 'study_help',
-        callback: token => {
-          studyHelperToken = token;
-          submit.disabled = false;
-          status.textContent = 'Ready. Your notes are sent only when you press Ask my notes.';
-        },
-        'expired-callback': () => {
-          studyHelperToken = ''; submit.disabled = true;
-          status.textContent = 'The safety check expired. Please complete it again.';
-        },
-        'error-callback': () => {
-          studyHelperToken = ''; submit.disabled = true;
-          status.textContent = 'The safety check did not work. Please try again.';
-        }
-      });
+      if (!window.turnstile) {
+        status.textContent = 'The safety check did not load. Please try later.';
+        gamesStatus.textContent = 'The safety check did not load. Please try later.';
+        return;
+      }
+      turnstileReady = true;
+      if ($('#view-study').classList.contains('active')) mountStudyHelperWidget();
+      if ($('#view-games').classList.contains('active')) mountStudyGamesWidget();
     };
-    script.onerror = () => { status.textContent = 'The safety check could not load. Please try later.'; };
+    script.onerror = () => {
+      status.textContent = 'The safety check could not load. Please try later.';
+      gamesStatus.textContent = 'The safety check could not load. Please try later.';
+    };
     document.head.append(script);
     $('#study-ai-form').addEventListener('submit', async event => {
       event.preventDefault();
@@ -618,7 +667,7 @@
       submit.disabled = true;
       status.textContent = 'Looking for an answer in your notes…';
       try {
-        const response = await fetch(`${endpoint}/ask`, {
+        const response = await fetch(`${helperEndpoint}/ask`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -643,6 +692,46 @@
         studyHelperToken = '';
         if (window.turnstile && studyHelperWidget !== null) window.turnstile.reset(studyHelperWidget);
         submit.disabled = true;
+      }
+    });
+    $('#study-games-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const notes = $('#study-games-notes').value.trim();
+      if (!notes || !studyGamesToken || !helperEndpoint) return;
+      const gamesSubmit = $('#study-games-submit');
+      const gamesStatus = $('#study-games-status');
+      gamesSubmit.disabled = true;
+      $('#play-ai-games').hidden = true;
+      gamesStatus.textContent = 'Making puzzles from your notes…';
+      try {
+        const response = await fetch(`${helperEndpoint}/games`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject: $('#study-subject').value,
+            topic: $('#topic-input').value.trim(),
+            notes,
+            turnstileToken: studyGamesToken
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'The helper could not make puzzles right now.');
+        if (!Array.isArray(data.puzzles) || data.puzzles.length !== 5) throw new Error('The helper could not make five puzzles from those notes. Try notes with a few clear facts.');
+        puzzleData.ai = data.puzzles.map(puzzle => ({
+          kind: 'AI STUDY PUZZLE',
+          question: puzzle.question,
+          answers: [puzzle.answer],
+          hint: puzzle.hint,
+          evidence: puzzle.evidence
+        }));
+        $('#play-ai-games').hidden = false;
+        gamesStatus.textContent = 'Five puzzles are ready. Check each answer against its note quote.';
+      } catch (error) {
+        gamesStatus.textContent = error.message === 'Failed to fetch' ? 'Could not connect to the helper. Please try later.' : error.message;
+      } finally {
+        studyGamesToken = '';
+        if (window.turnstile && studyGamesWidget !== null) window.turnstile.reset(studyGamesWidget);
+        gamesSubmit.disabled = true;
       }
     });
   }
@@ -714,6 +803,7 @@
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') organizeQuickAdd();
   });
   $('#puzzle-back').addEventListener('click', resetPuzzlePicker);
+  $('#play-ai-games').addEventListener('click', () => openPuzzle('ai'));
   $$('[data-puzzle]').forEach(button => button.addEventListener('click', () => openPuzzle(button.dataset.puzzle)));
   $('#puzzle-next').addEventListener('click', () => {
     if (!currentPuzzle) return;
@@ -722,14 +812,19 @@
   $('#puzzle-answer-form').addEventListener('submit', event => {
     event.preventDefault();
     const puzzle = puzzleData[currentPuzzle]?.[currentPuzzleIndex]; if (!puzzle) return;
-    const answer = $('#puzzle-answer').value.trim().toLowerCase().replace(/[.!?]+$/, '');
+    const normalizeAnswer = text => text.toLocaleLowerCase().normalize('NFKC').replace(/[\p{P}\p{S}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+    const answer = normalizeAnswer($('#puzzle-answer').value);
     const feedback = $('#puzzle-feedback');
-    if (puzzle.answers.includes(answer)) {
+    if (puzzle.answers.some(expected => normalizeAnswer(expected) === answer)) {
       feedback.textContent = 'That’s right! Nice solving. ✨';
       feedback.classList.add('is-correct');
+      const evidence = $('#puzzle-evidence');
+      evidence.textContent = puzzle.evidence || '';
+      evidence.hidden = !puzzle.evidence;
     } else {
       feedback.textContent = `Not quite—try again. Hint: ${puzzle.hint}`;
       feedback.classList.remove('is-correct');
+      $('#puzzle-evidence').hidden = true;
     }
   });
   $('#profile-open').addEventListener('click', () => {
