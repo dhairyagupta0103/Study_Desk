@@ -17,6 +17,10 @@
   let quickAddPending = false;
   let currentPuzzle = null;
   let currentPuzzleIndex = 0;
+  let currentAiNotes = '';
+  let currentAiKind = 'mix';
+  let aiPuzzleLoading = false;
+  let aiPuzzleNumber = 0;
   let quizState = null;
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -184,7 +188,7 @@
     currentPuzzle = key;
     currentPuzzleIndex = index % puzzles.length;
     const puzzle = puzzles[currentPuzzleIndex];
-    $('#puzzle-kind').textContent = `${puzzle.kind} · ${currentPuzzleIndex + 1} OF ${puzzles.length}`;
+    $('#puzzle-kind').textContent = currentPuzzle === 'ai' ? `${puzzle.kind} · ${aiPuzzleNumber} · KEEP GOING` : `${puzzle.kind} · ${currentPuzzleIndex + 1} OF ${puzzles.length}`;
     $('#puzzle-prompt').textContent = puzzle.question;
     $('#puzzle-answer').value = '';
     $('#puzzle-feedback').textContent = '';
@@ -598,7 +602,7 @@
       callback: token => {
         studyGamesToken = token;
         $('#study-games-submit').disabled = false;
-        $('#study-games-status').textContent = 'Ready. Your notes are sent only when you press Make five puzzles.';
+        $('#study-games-status').textContent = 'Ready to make an AI puzzle from your notes.';
       },
       'expired-callback': () => {
         studyGamesToken = ''; $('#study-games-submit').disabled = true;
@@ -609,6 +613,27 @@
         $('#study-games-status').textContent = 'The safety check did not work. Please try again.';
       }
     });
+  }
+  async function fetchAiPuzzle(token) {
+    const response = await fetch(`${helperEndpoint}/games`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject: $('#study-subject').value,
+        topic: $('#topic-input').value.trim(),
+        notes: currentAiNotes,
+        kind: currentAiKind,
+        turnstileToken: token
+      })
+    });
+    const data = await response.json();
+    const puzzle = data.puzzle;
+    if (!response.ok) throw new Error(data.error || 'The helper could not make a puzzle right now.');
+    if (!puzzle || !['number', 'word', 'riddle'].includes(puzzle.kind) || typeof puzzle.question !== 'string' || typeof puzzle.answer !== 'string' || typeof puzzle.hint !== 'string' || typeof puzzle.evidence !== 'string') {
+      throw new Error('The helper returned an incomplete puzzle. Please try again.');
+    }
+    const labels = { number: 'AI NUMBER CLUE', word: 'AI WORD SCRAMBLE', riddle: 'AI NOTE RIDDLE' };
+    return { kind: labels[puzzle.kind], question: puzzle.question, answers: [puzzle.answer], hint: puzzle.hint, evidence: puzzle.evidence };
   }
   function helperSetup() {
     const config = window.STUDY_HELPER_CONFIG || {};
@@ -700,32 +725,19 @@
       if (!notes || !studyGamesToken || !helperEndpoint) return;
       const gamesSubmit = $('#study-games-submit');
       const gamesStatus = $('#study-games-status');
+      currentAiNotes = notes;
+      currentAiKind = $('#study-games-style').value;
+      puzzleData.ai = [];
+      aiPuzzleNumber = 0;
       gamesSubmit.disabled = true;
       $('#play-ai-games').hidden = true;
-      gamesStatus.textContent = 'Making puzzles from your notes…';
+      gamesStatus.textContent = 'Making a puzzle from your notes…';
       try {
-        const response = await fetch(`${helperEndpoint}/games`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subject: $('#study-subject').value,
-            topic: $('#topic-input').value.trim(),
-            notes,
-            turnstileToken: studyGamesToken
-          })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'The helper could not make puzzles right now.');
-        if (!Array.isArray(data.puzzles) || data.puzzles.length !== 5) throw new Error('The helper could not make five puzzles from those notes. Try notes with a few clear facts.');
-        puzzleData.ai = data.puzzles.map(puzzle => ({
-          kind: 'AI STUDY PUZZLE',
-          question: puzzle.question,
-          answers: [puzzle.answer],
-          hint: puzzle.hint,
-          evidence: puzzle.evidence
-        }));
+        const puzzle = await fetchAiPuzzle(studyGamesToken);
+        puzzleData.ai = [puzzle];
+        aiPuzzleNumber = 1;
         $('#play-ai-games').hidden = false;
-        gamesStatus.textContent = 'Five puzzles are ready. Check each answer against its note quote.';
+        gamesStatus.textContent = 'Your first AI puzzle is ready. Press Next for another one.';
       } catch (error) {
         gamesStatus.textContent = error.message === 'Failed to fetch' ? 'Could not connect to the helper. Please try later.' : error.message;
       } finally {
@@ -807,6 +819,41 @@
   $$('[data-puzzle]').forEach(button => button.addEventListener('click', () => openPuzzle(button.dataset.puzzle)));
   $('#puzzle-next').addEventListener('click', () => {
     if (!currentPuzzle) return;
+    if (currentPuzzle === 'ai' && currentPuzzleIndex + 1 >= puzzleData.ai.length) {
+      if (aiPuzzleLoading) return;
+      if (!currentAiNotes) {
+        $('#study-games-status').textContent = 'Add your notes above to make AI puzzles.';
+        return;
+      }
+      if (!studyGamesToken) {
+        $('#study-games-status').textContent = 'Complete the quick safety check above to make the next puzzle.';
+        return;
+      }
+      const token = studyGamesToken;
+      const nextButton = $('#puzzle-next');
+      const gamesStatus = $('#study-games-status');
+      aiPuzzleLoading = true;
+      studyGamesToken = '';
+      $('#study-games-submit').disabled = true;
+      nextButton.disabled = true;
+      nextButton.textContent = 'Making another puzzle…';
+      gamesStatus.textContent = 'Making another puzzle from your notes…';
+      fetchAiPuzzle(token).then(puzzle => {
+        puzzleData.ai = [puzzle];
+        aiPuzzleNumber += 1;
+        openPuzzle('ai', 0);
+        gamesStatus.textContent = 'New puzzle ready. Press Next whenever you want another.';
+      }).catch(error => {
+        gamesStatus.textContent = error.message === 'Failed to fetch' ? 'Could not connect to the helper. Please try later.' : error.message;
+      }).finally(() => {
+        aiPuzzleLoading = false;
+        if (window.turnstile && studyGamesWidget !== null) window.turnstile.reset(studyGamesWidget);
+        $('#study-games-submit').disabled = true;
+        nextButton.disabled = false;
+        if (currentPuzzle === 'ai') nextButton.textContent = 'Next study puzzle →';
+      });
+      return;
+    }
     openPuzzle(currentPuzzle, (currentPuzzleIndex + 1) % puzzleData[currentPuzzle].length);
   });
   $('#puzzle-answer-form').addEventListener('submit', event => {
