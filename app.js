@@ -559,6 +559,93 @@
       setTimerDisplay();
     }, 1000);
   }
+  let studyHelperToken = '';
+  let studyHelperWidget = null;
+  function helperSetup() {
+    const config = window.STUDY_HELPER_CONFIG || {};
+    const rawEndpoint = typeof config.endpoint === 'string' ? config.endpoint.trim() : '';
+    const siteKey = typeof config.turnstileSiteKey === 'string' ? config.turnstileSiteKey.trim() : '';
+    const submit = $('#study-ai-submit');
+    const status = $('#study-ai-status');
+    if (!rawEndpoint || !siteKey) {
+      status.textContent = 'The helper is prepared but not connected yet. An adult can finish the private setup.';
+      submit.disabled = true;
+      return;
+    }
+    let endpoint;
+    try {
+      const parsed = new URL(rawEndpoint);
+      if (parsed.protocol !== 'https:') throw new Error('HTTPS is required.');
+      endpoint = parsed.toString().replace(/\/+$/, '');
+    } catch {
+      status.textContent = 'The helper address needs to be set up correctly.';
+      submit.disabled = true;
+      return;
+    }
+    status.textContent = 'Complete the quick safety check before asking.';
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true; script.defer = true;
+    script.onload = () => {
+      if (!window.turnstile) { status.textContent = 'The safety check did not load. Please try later.'; return; }
+      studyHelperWidget = window.turnstile.render('#study-ai-check', {
+        sitekey: siteKey,
+        action: 'study_help',
+        callback: token => {
+          studyHelperToken = token;
+          submit.disabled = false;
+          status.textContent = 'Ready. Your notes are sent only when you press Ask my notes.';
+        },
+        'expired-callback': () => {
+          studyHelperToken = ''; submit.disabled = true;
+          status.textContent = 'The safety check expired. Please complete it again.';
+        },
+        'error-callback': () => {
+          studyHelperToken = ''; submit.disabled = true;
+          status.textContent = 'The safety check did not work. Please try again.';
+        }
+      });
+    };
+    script.onerror = () => { status.textContent = 'The safety check could not load. Please try later.'; };
+    document.head.append(script);
+    $('#study-ai-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const notes = $('#study-ai-notes').value.trim();
+      const question = $('#study-ai-question').value.trim();
+      if (!notes || !question || !studyHelperToken) return;
+      const result = $('#study-ai-result');
+      result.hidden = true;
+      submit.disabled = true;
+      status.textContent = 'Looking for an answer in your notes…';
+      try {
+        const response = await fetch(`${endpoint}/ask`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject: $('#study-subject').value,
+            topic: $('#topic-input').value.trim(),
+            notes,
+            question,
+            turnstileToken: studyHelperToken
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'The helper could not answer right now.');
+        $('#study-ai-answer').textContent = data.answer || 'I can’t find that in your study notes yet.';
+        const evidence = typeof data.evidence === 'string' ? data.evidence : '';
+        $('#study-ai-evidence').textContent = evidence;
+        $('#study-ai-evidence-wrap').hidden = !evidence;
+        result.hidden = false;
+        status.textContent = evidence ? 'Here is the answer and the note text that supports it.' : 'I couldn’t find the answer in these notes.';
+      } catch (error) {
+        status.textContent = error.message === 'Failed to fetch' ? 'Could not connect to the helper. Please try later.' : error.message;
+      } finally {
+        studyHelperToken = '';
+        if (window.turnstile && studyHelperWidget !== null) window.turnstile.reset(studyHelperWidget);
+        submit.disabled = true;
+      }
+    });
+  }
 
   $('#today-label').textContent = today.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   $$('.nav-item').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
@@ -671,5 +758,6 @@
   if (state.topic) $('#topic-input').value = state.topic;
   $('#study-subject').value = state.studySubject;
   updateProfileButton(); drawTasks(); drawFlashcards(); setTimerDisplay();
+  helperSetup();
 })();
 
