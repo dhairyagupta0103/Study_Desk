@@ -2,7 +2,7 @@
   const STORAGE_KEY = 'study-desk-v1';
   const subjects = {
     Maths: ['∑', 'tone-blue'], Science: ['✳', 'tone-mint'], English: ['Aa', 'tone-peach'],
-    'Social Studies': ['◎', 'tone-lilac'], Languages: ['文', 'tone-yellow'], Art: ['✎', 'tone-pink'], Other: ['✧', 'tone-blue']
+    Hindi: ['अ', 'tone-yellow'], Sanskrit: ['सं', 'tone-lilac'], 'Social Studies': ['◎', 'tone-lilac'], Languages: ['文', 'tone-yellow'], Art: ['✎', 'tone-pink'], Other: ['✧', 'tone-blue']
   };
   const today = new Date();
   const isoToday = localDate(today);
@@ -37,9 +37,10 @@
         tasks: Array.isArray(saved.tasks) ? saved.tasks : [],
         flashcards: Array.isArray(saved.flashcards) ? saved.flashcards : [],
         topic: typeof saved.topic === 'string' ? saved.topic : '',
+        studySubject: typeof saved.studySubject === 'string' ? saved.studySubject : 'Science',
         profileName: typeof saved.profileName === 'string' ? saved.profileName : ''
       };
-    } catch { return { tasks: [], flashcards: [], topic: '', profileName: '' }; }
+    } catch { return { tasks: [], flashcards: [], topic: '', studySubject: 'Science', profileName: '' }; }
   }
   function saveState() {
     try {
@@ -74,6 +75,8 @@
     updateProfileButton();
     const topicInput = $('#topic-input');
     if (document.activeElement !== topicInput) topicInput.value = state.topic;
+    const studySubject = $('#study-subject');
+    if (document.activeElement !== studySubject) studySubject.value = state.studySubject;
     updateSaveIndicator('Updated in another tab');
     clearTimeout(saveStatusTimeout);
     saveStatusTimeout = setTimeout(() => updateSaveIndicator('Saved on this device'), 2400);
@@ -101,7 +104,9 @@
       ['Maths', /\b(math|maths|algebra|fraction|fractions|geometry|multiplication|division|equation)\b/],
       ['Science', /\b(science|planet|planets|water cycle|solar system|gravity|experiment|ecosystem)\b/],
       ['Social Studies', /\b(history|geography|social studies|civics|map|country)\b/],
-      ['Languages', /\b(hindi|spanish|french|language|verb conjugation)\b/],
+      ['Hindi', /\bhindi\b/],
+      ['Sanskrit', /\bsanskrit\b/],
+      ['Languages', /\b(spanish|french|language|verb conjugation)\b/],
       ['English', /\b(english|essay|poem|poetry|grammar|reading|book report|story|vocabulary)\b/],
       ['Art', /\b(art|drawing|painting|poster|craft)\b/]
     ];
@@ -407,30 +412,125 @@
     $('#sidebar').classList.remove('open');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
-  function buildPlan(topic) {
-    const steps = [
-      ['Warm up · 3 min', `Write down what you already know about ${topic}. Add one thing you are unsure about.`],
-      ['Learn · 8 min', 'Read your class notes or book slowly. Stop after each small section and explain the main idea in your own words.'],
-      ['Remember · 5 min', 'Close your notes. Write or say the key ideas from memory, then open your notes and check what you missed.'],
-      ['Practise · 4 min', 'Try a question from your work without looking at the answer. If you get stuck, ask for a hint and try again.']
-    ];
-    const questions = [
-      `How would you explain ${topic} to a friend in two sentences?`,
-      `What is one example of ${topic}, and why does it fit?`,
-      `Which part of ${topic} still feels confusing? What clue could help you figure it out?`
-    ];
+  function topicTip(subject, topic) {
+    const value = topic.toLowerCase();
+    if (subject === 'Maths' && /fraction/.test(value)) return 'Try drawing a fraction or putting it on a number line. Check what the top and bottom numbers tell you.';
+    if (subject === 'Maths' && /multiplication|times table/.test(value)) return 'Use equal groups or an array of dots to show what is being multiplied.';
+    if (subject === 'Science' && /water cycle/.test(value)) return 'Try putting these stages in order: evaporation, condensation, precipitation, and collection.';
+    if (subject === 'Science' && /solar system|planet/.test(value)) return 'Try naming the planets in order from the Sun, then compare two of them.';
+    if (subject === 'Science' && /photosynthesis/.test(value)) return 'Look for what a plant takes in, what it uses, and what it makes.';
+    if (subject === 'Hindi' && /poem|कविता/.test(value)) return 'Read one line aloud, then explain its meaning in your own words.';
+    if (subject === 'Hindi' && /grammar|व्याकरण|matra|मात्रा/.test(value)) return 'Use one example from your book and notice how the spelling or word changes.';
+    if (subject === 'Sanskrit' && /sandhi|संधि/.test(value)) return 'Compare the words before and after they join, and notice which sounds changed.';
+    if (subject === 'Sanskrit' && /vibhakti|विभक्ति/.test(value)) return 'Compare the word endings in your notes and notice what each ending tells you.';
+    return '';
+  }
+  function buildPlan(subject, topic) {
+    const guides = {
+      Maths: {
+        steps: [
+          ['Warm up · 3 min', `Look at one worked example of ${topic}. Circle what the question asks you to find.`],
+          ['Try it · 8 min', `Solve a similar ${topic} question with your notes open. Write each step and why you chose it.`],
+          ['Remember · 5 min', `Close your notes and solve a new ${topic} question from memory.`],
+          ['Check · 4 min', 'Check your calculations. Explain how you know your answer makes sense.']
+        ],
+        questions: [`What is the first step for a ${topic} question?`, `Which step could be easy to mix up, and how can you check it?`, `Can you make a small example of ${topic}?`]
+      },
+      Science: {
+        steps: [
+          ['Spot the parts · 3 min', `List the important parts, stages, or words you notice in ${topic}.`],
+          ['Make a model · 8 min', `Draw a small labelled diagram or sequence to show how ${topic} works.`],
+          ['Explain · 5 min', `Explain what happens in ${topic} and why, using your own words.`],
+          ['Check · 4 min', 'Cover your notes, write three facts, then check and correct them.']
+        ],
+        questions: [`What changes or happens in ${topic}?`, `How are two parts of ${topic} connected?`, `What would you draw to help someone understand ${topic}?`]
+      },
+      English: {
+        steps: [
+          ['Read · 4 min', `Read a short piece about ${topic}. Mark one word or sentence you want to understand better.`],
+          ['Find the meaning · 6 min', `Write the main idea of ${topic} in one sentence and look up any new words in your book.`],
+          ['Retell · 6 min', `Close the book and explain ${topic} aloud, using one detail from what you read.`],
+          ['Polish · 4 min', 'Check your spelling and make your explanation clear and complete.']
+        ],
+        questions: [`What is the main idea of ${topic}?`, `Which word or detail helped you understand it?`, `How would you explain ${topic} to a younger student?`]
+      },
+      Languages: {
+        steps: [
+          ['Say it · 4 min', `Read or say a few words connected to ${topic} slowly and clearly.`],
+          ['Learn · 6 min', `Choose three new words about ${topic}. Write their meanings and one example for each.`],
+          ['Remember · 6 min', `Cover your notes and use one word from ${topic} in a short sentence.`],
+          ['Check · 4 min', 'Check the meaning, spelling, and word order with your class notes.']
+        ],
+        questions: [`What does one new word about ${topic} mean?`, `Can you use it in a short sentence?`, `Which sound or spelling do you want to practise?`]
+      },
+      Hindi: {
+        steps: [
+          ['Read aloud · 4 min', `Read a short Hindi line or passage about ${topic} slowly and aloud.`],
+          ['Collect words · 6 min', `Choose three Hindi words connected to ${topic}. Write each meaning in your notes.`],
+          ['Remember · 6 min', `Cover your notes and say or write two short lines about ${topic} in Hindi.`],
+          ['Check · 4 min', 'Check the spelling, matras, and meanings with your class book.']
+        ],
+        questions: [`What does one important Hindi word about ${topic} mean?`, `Can you make a short Hindi sentence using a word from ${topic}?`, `Which spelling or matra do you want to remember?`]
+      },
+      Sanskrit: {
+        steps: [
+          ['Read aloud · 4 min', `Read one Sanskrit word or sentence about ${topic} slowly. Notice its sounds and ending.`],
+          ['Find meanings · 6 min', `Use your class notes to find the meanings of three words connected to ${topic}.`],
+          ['Remember · 6 min', `Cover your notes and recall a word, its meaning, and its ending.`],
+          ['Check · 4 min', `Translate one short phrase about ${topic}, then check each word with your book.`]
+        ],
+        questions: [`What does one Sanskrit word about ${topic} mean?`, `Which word ending can help you understand its role?`, `Can you translate one short phrase from your notes?`]
+      },
+      'Social Studies': {
+        steps: [
+          ['Find it · 4 min', `Find the place, person, or time connected to ${topic} in your book or on a map.`],
+          ['Connect events · 6 min', `Make a tiny timeline or a “cause → event → result” list for ${topic}.`],
+          ['Retell · 6 min', `Close your book and explain what happened in ${topic} and why it matters.`],
+          ['Check · 4 min', 'Check dates, names, and places against your notes.']
+        ],
+        questions: [`Where or when does ${topic} happen?`, `What is one cause or result connected to ${topic}?`, `Which date, place, or person should you remember?`]
+      },
+      Art: {
+        steps: [
+          ['Look closely · 4 min', `Find an example of ${topic}. Notice its shapes, colours, and lines.`],
+          ['Practise · 6 min', `Try one small ${topic} technique on scrap paper before starting your main work.`],
+          ['Make · 6 min', `Create a small sketch or sample that uses one idea from ${topic}.`],
+          ['Review · 4 min', 'Compare your practice with your goal. Choose one detail to improve.']
+        ],
+        questions: [`Which shape, colour, or tool is useful for ${topic}?`, `What did you try first?`, `What is one small detail you could improve?`]
+      },
+      Other: {
+        steps: [
+          ['Break it up · 4 min', `Split ${topic} into three small words, parts, or questions.`],
+          ['Learn one part · 6 min', `Choose the part of ${topic} that feels most important and study it from your notes.`],
+          ['Remember · 6 min', `Cover your notes and explain that part of ${topic} from memory.`],
+          ['Check · 4 min', 'Open your notes and add one thing you forgot or want to practise again.']
+        ],
+        questions: [`What are three small parts of ${topic}?`, `Which part feels easiest to explain?`, `What is one thing you want to practise again?`]
+      }
+    };
+    const guide = guides[subject] || guides.Other;
+    const questions = [...guide.questions];
+    const extraTip = topicTip(subject, topic);
     const plan = $('#study-plan'); plan.replaceChildren(); plan.classList.remove('hidden');
     const top = document.createElement('div'); top.className = 'plan-heading';
     const titleWrap = document.createElement('div');
-    const tag = document.createElement('div'); tag.className = 'eyebrow'; tag.textContent = 'YOUR 20-MINUTE PLAN';
+    const tag = document.createElement('div'); tag.className = 'eyebrow'; tag.textContent = `${subject.toUpperCase()} · YOUR 20-MINUTE PLAN`;
     const title = document.createElement('h3'); title.textContent = topic;
-    const sub = document.createElement('p'); sub.textContent = 'A simple path from “I’m learning this” to “I can explain this.”';
+    const sub = document.createElement('p'); sub.textContent = `Try these ${subject} steps with your class notes about ${topic}.`;
     titleWrap.append(tag, title, sub);
     const close = document.createElement('button'); close.className = 'plan-close'; close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', 'Close study plan');
     close.addEventListener('click', () => plan.classList.add('hidden'));
     top.append(titleWrap, close);
+    const planContent = [];
+    if (extraTip) {
+      const tip = document.createElement('div'); tip.className = 'plan-topic-tip';
+      const tipLabel = document.createElement('strong'); tipLabel.textContent = 'TOPIC TIP';
+      const tipText = document.createElement('p'); tipText.textContent = extraTip;
+      tip.append(tipLabel, tipText); planContent.push(tip);
+    }
     const stepList = document.createElement('div'); stepList.className = 'plan-steps';
-    steps.forEach(([heading, copy], i) => {
+    guide.steps.forEach(([heading, copy], i) => {
       const item = document.createElement('div'); item.className = 'plan-step';
       const number = document.createElement('span'); number.className = 'plan-step-num'; number.textContent = String(i + 1);
       const body = document.createElement('div'); const strong = document.createElement('strong'); strong.textContent = heading; const text = document.createElement('p'); text.textContent = copy;
@@ -439,7 +539,7 @@
     const practice = document.createElement('div'); practice.className = 'practice-questions';
     const practiceTitle = document.createElement('strong'); practiceTitle.textContent = 'Check what you know';
     const list = document.createElement('ol'); questions.forEach(question => { const item = document.createElement('li'); item.textContent = question; list.append(item); });
-    practice.append(practiceTitle, list); plan.append(top, stepList, practice);
+    practice.append(practiceTitle, list); plan.append(top, ...planContent, stepList, practice);
     plan.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   function setTimerDisplay() {
@@ -514,7 +614,8 @@
   });
   $('#topic-form').addEventListener('submit', event => {
     event.preventDefault(); const topic = $('#topic-input').value.trim(); if (!topic) return;
-    state.topic = topic; saveState(); buildPlan(topic);
+    const subject = $('#study-subject').value;
+    state.topic = topic; state.studySubject = subject; saveState(); buildPlan(subject, topic);
   });
   $('#timer-toggle').addEventListener('click', () => {
     if (timerRunning) { timerRunning = false; clearInterval(timerInterval); setTimerDisplay(); }
@@ -568,6 +669,7 @@
   const initialView = location.hash.replace('#', '');
   showView(['overview', 'work', 'study', 'flashcards', 'games'].includes(initialView) ? initialView : 'overview');
   if (state.topic) $('#topic-input').value = state.topic;
+  $('#study-subject').value = state.studySubject;
   updateProfileButton(); drawTasks(); drawFlashcards(); setTimerDisplay();
 })();
 
