@@ -16,14 +16,15 @@ Open `index.html` in a web browser. No account, server, or paid service is neede
 - Paste schoolwork into Quick Add to get a subject, due-date, and task suggestion to review.
 - Open Mind Games from the side menu for several number patterns, word scrambles, and riddles, with a Next button to keep playing. The Puzzle Box on Overview opens the same section.
 - Make question-and-answer flashcards, tap to flip them, and try a short quiz.
+- Use the Study-only AI helper once its private server is configured; it asks for a quote from the notes and says when it cannot find an answer.
 
-Tasks, flashcards, the last topic, and the optional profile name are saved automatically in this browser on this device. A saved-status label confirms changes, and open tabs refresh when the saved data changes. They do not sync to other devices and are not uploaded to an AI service. Clearing this browser's site data will erase the saved information.
+Tasks, flashcards, the last topic, and the optional profile name are saved automatically in this browser on this device. A saved-status label confirms changes, and open tabs refresh when the saved data changes. They do not sync to other devices. When the AI helper is connected and used, the notes and question are sent to OpenAI for an answer; Study Desk does not save the AI request. Clearing this browser's site data will erase the saved information.
 
 ## Publish it
 
-The site is made from static files, so it can be hosted by a static website service. Upload `index.html`, `styles.css`, `app.js`, and `study-icon.svg` together; keep them in the same folder. `README.md` is for setup notes and is not needed by the site.
+The site is made from static files, so it can be hosted by a static website service. Upload `index.html`, `styles.css`, `app.js`, `study-helper-config.js`, and `study-icon.svg` together; keep them in the same folder. The private Worker setup is in `study-helper/README.md`. `README.md` is for setup notes and is not needed by the site.
 
 ## Current scope
 
-Study Room uses built-in subject-specific guides, including Hindi and Sanskrit, plus extra tips for some common topics. It does not use AI, so unusual topics get the guide for the selected subject rather than a custom answer. There is no online account system; the profile is only a name on this device and does not use a password or email.
+Study Room uses built-in subject-specific guides, including Hindi and Sanskrit, plus extra tips for some common topics. The AI helper is not active until its private Worker and adult-managed secrets are configured. Even when connected, it can make mistakes, so check its answer against the quoted notes. There is no online account system; the profile is only a name on this device and does not use a password or email.
 
