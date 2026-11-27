@@ -15,11 +15,11 @@ Open `index.html` in a web browser. No account, server, or paid service is neede
 - Add an optional profile name shown in the page header.
 - Paste schoolwork into Quick Add to get a subject, due-date, and task suggestion to review.
 - Open Mind Games from the side menu for several number patterns, word scrambles, and riddles, with a Next button to keep playing. The Puzzle Box on Overview opens the same section.
-- When the private helper is connected, paste study notes in Mind Games to make five note-based puzzles. Each correct answer shows the note quote that supports it.
+- When the private helper is connected, use your notes to make AI number clues, word scrambles, or riddles. Press Next to ask for another puzzle; each correct answer shows a supporting quote.
 - Make question-and-answer flashcards, tap to flip them, and try a short quiz.
 - Use the Study-only AI helper once its private server is configured; it asks for a quote from the notes and says when it cannot find an answer.
 
-Tasks, flashcards, the last topic, and the optional profile name are saved automatically in this browser on this device. A saved-status label confirms changes, and open tabs refresh when the saved data changes. They do not sync to other devices. When the AI helper is connected and used, submitted notes and questions are sent to OpenAI for an answer or to make puzzles. Study Desk does not save AI requests. Clearing this browser's site data will erase the saved information.
+Tasks, flashcards, the last topic, and the optional profile name are saved automatically in this browser on this device. A saved-status label confirms changes, and open tabs refresh when the saved data changes. They do not sync to other devices. When the AI helper is connected and used, submitted notes and questions are sent to Cloudflare Workers AI for an answer or puzzle. Study Desk does not save AI requests. Clearing this browser's site data will erase the saved information.
 
 ## Publish it
 
@@ -27,5 +27,5 @@ The site is made from static files, so it can be hosted by a static website serv
 
 ## Current scope
 
-Study Room uses built-in subject-specific guides, including Hindi and Sanskrit, plus extra tips for some common topics. The AI helper is not active until its private Worker and adult-managed secrets are configured. Even when connected, it can make mistakes, so check its answers and puzzles against the quoted notes. There is no online account system; the profile is only a name on this device and does not use a password or email.
+Study Room uses built-in subject-specific guides, including Hindi and Sanskrit, plus extra tips for some common topics. The AI helper is not active until its private Worker and adult-managed Turnstile secret are configured. It uses Cloudflare Workers AI Free, which stops accepting AI requests after its daily free allowance is used. Even when connected, it can make mistakes, so check its answers and puzzles against the quoted notes. There is no online account system; the profile is only a name on this device and does not use a password or email.
 
