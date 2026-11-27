@@ -225,7 +225,10 @@
     const check = document.createElement('button'); check.className = `done-check${task.done ? ' checked' : ''}`; check.type = 'button';
     check.textContent = task.done ? '✓' : ''; check.setAttribute('aria-label', task.done ? `Mark ${task.title} as to do` : `Mark ${task.title} as done`);
     check.addEventListener('click', () => toggleTask(task.id));
-    row.append(icon, main, subject, due, check);
+    const remove = document.createElement('button'); remove.className = 'delete-task'; remove.type = 'button'; remove.textContent = 'Delete';
+    remove.setAttribute('aria-label', `Delete ${task.title}`);
+    remove.addEventListener('click', () => deleteTask(task.id));
+    row.append(icon, main, subject, due, check, remove);
     const details = document.createElement('details'); details.className = 'task-steps';
     const summary = document.createElement('summary'); summary.textContent = 'Break it into small steps';
     const list = document.createElement('div'); list.className = 'task-step-list';
@@ -377,10 +380,22 @@
     else dialog.setAttribute('open', '');
     setTimeout(() => $('#task-title').focus(), 40);
   }
+  function closeAddDialog() {
+    const dialog = $('#add-dialog');
+    if (typeof dialog.close === 'function') dialog.close();
+    else dialog.removeAttribute('open');
+    quickAddPending = false;
+  }
   function toggleTask(id) {
     const task = state.tasks.find(item => item.id === id); if (!task) return;
     task.done = !task.done; task.completedAt = task.done ? new Date().toISOString() : null;
     saveState(); drawTasks(); showToast(task.done ? 'Marked done. Nice work!' : 'Back on your list.');
+  }
+  function deleteTask(id) {
+    const task = state.tasks.find(item => item.id === id); if (!task) return;
+    if (!window.confirm(`Delete “${task.title}” from your schoolwork?`)) return;
+    state.tasks = state.tasks.filter(item => item.id !== id);
+    saveState(); drawTasks(); showToast('Schoolwork deleted.');
   }
   function showView(name) {
     if (name !== 'games' && currentPuzzle) resetPuzzlePicker();
@@ -450,6 +465,9 @@
   $$('[data-view-link]').forEach(button => button.addEventListener('click', () => showView(button.dataset.viewLink)));
   $$('[data-open-add]').forEach(button => button.addEventListener('click', openAddDialog));
   $('#mobile-menu').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
+  $('#task-dialog-close').addEventListener('click', closeAddDialog);
+  $('#task-cancel').addEventListener('click', closeAddDialog);
+  $('#add-dialog').addEventListener('cancel', () => { quickAddPending = false; });
   $('#tip-start').addEventListener('click', () => { showView('study'); startTimer(); });
   $$('.filter-pill').forEach(button => button.addEventListener('click', () => {
     currentFilter = button.dataset.filter;
@@ -487,7 +505,6 @@
   $('#quiz-restart').addEventListener('click', startFlashcardQuiz);
   $('#task-form').addEventListener('submit', event => {
     event.preventDefault();
-    if (event.submitter && event.submitter.value === 'cancel') { $('#add-dialog').close(); quickAddPending = false; return; }
     const title = $('#task-title').value.trim(); if (!title) return;
     state.tasks.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, title, subject: $('#task-subject').value, due: $('#task-due').value, notes: $('#task-notes').value.trim(), done: false, created: Date.now(), steps: [] });
     saveState(); drawTasks(); $('#add-dialog').close(); event.target.reset();
