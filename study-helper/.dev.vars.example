@@ -1,0 +1,3 @@
+OPENAI_API_KEY="put the private API key here only in your local .dev.vars file"
+TURNSTILE_SECRET_KEY="put the private Turnstile secret here only in your local .dev.vars file"
+
