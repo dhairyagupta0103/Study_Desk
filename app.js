@@ -1,5 +1,7 @@
 (() => {
   const STORAGE_KEY = 'study-desk-v1';
+  const DEFAULT_WELCOME_MESSAGE = 'Keep track of what’s on your plate, then take it one step at a time.';
+  const AVAILABLE_THEMES = ['blue', 'mint', 'lilac', 'peach'];
   const subjects = {
     Maths: ['∑', 'tone-blue'], Science: ['✳', 'tone-mint'], English: ['Aa', 'tone-peach'],
     Hindi: ['अ', 'tone-yellow'], Sanskrit: ['सं', 'tone-lilac'], 'Social Studies': ['◎', 'tone-lilac'], Languages: ['文', 'tone-yellow'], Art: ['✎', 'tone-pink'], Other: ['✧', 'tone-blue']
@@ -42,9 +44,11 @@
         flashcards: Array.isArray(saved.flashcards) ? saved.flashcards : [],
         topic: typeof saved.topic === 'string' ? saved.topic : '',
         studySubject: typeof saved.studySubject === 'string' ? saved.studySubject : 'Science',
-        profileName: typeof saved.profileName === 'string' ? saved.profileName : ''
+        profileName: typeof saved.profileName === 'string' ? saved.profileName : '',
+        welcomeMessage: typeof saved.welcomeMessage === 'string' ? saved.welcomeMessage : '',
+        theme: AVAILABLE_THEMES.includes(saved.theme) ? saved.theme : 'blue'
       };
-    } catch { return { tasks: [], flashcards: [], topic: '', studySubject: 'Science', profileName: '' }; }
+    } catch { return { tasks: [], flashcards: [], topic: '', studySubject: 'Science', profileName: '', welcomeMessage: '', theme: 'blue' }; }
   }
   function saveState() {
     try {
@@ -70,6 +74,12 @@
     button.textContent = name ? name.charAt(0).toUpperCase() : '✿';
     button.setAttribute('aria-label', name ? `Manage ${name}'s profile` : 'Create or manage profile');
   }
+  function applyProfileSettings() {
+    document.body.dataset.theme = AVAILABLE_THEMES.includes(state.theme) ? state.theme : 'blue';
+    const welcomeCopy = $('#welcome-copy');
+    if (welcomeCopy) welcomeCopy.textContent = state.welcomeMessage.trim() || DEFAULT_WELCOME_MESSAGE;
+  }
+
   function refreshFromStorage() {
     const latest = loadState();
     if (JSON.stringify(latest) === JSON.stringify(state)) return;
@@ -77,6 +87,7 @@
     drawTasks();
     drawFlashcards();
     updateProfileButton();
+    applyProfileSettings();
     const topicInput = $('#topic-input');
     if (document.activeElement !== topicInput) topicInput.value = state.topic;
     const studySubject = $('#study-subject');
@@ -876,6 +887,8 @@
   });
   $('#profile-open').addEventListener('click', () => {
     $('#profile-name').value = state.profileName;
+    $('#welcome-message').value = state.welcomeMessage;
+    $('#desk-theme').value = AVAILABLE_THEMES.includes(state.theme) ? state.theme : 'blue';
     $('#profile-dialog').showModal();
     $('#profile-name').focus();
   });
@@ -884,10 +897,13 @@
   $('#profile-form').addEventListener('submit', event => {
     event.preventDefault();
     state.profileName = $('#profile-name').value.trim();
+    state.welcomeMessage = $('#welcome-message').value.trim();
+    state.theme = AVAILABLE_THEMES.includes($('#desk-theme').value) ? $('#desk-theme').value : 'blue';
     saveState();
     updateProfileButton();
+    applyProfileSettings();
     $('#profile-dialog').close();
-    showToast(state.profileName ? 'Profile name saved on this device.' : 'Profile name cleared.');
+    showToast('Your desk settings are saved on this device.');
   });
   window.addEventListener('storage', event => {
     if (event.key === STORAGE_KEY || event.key === null) refreshFromStorage();
@@ -899,7 +915,7 @@
   showView(['overview', 'work', 'study', 'flashcards', 'games'].includes(initialView) ? initialView : 'overview');
   if (state.topic) $('#topic-input').value = state.topic;
   $('#study-subject').value = state.studySubject;
-  updateProfileButton(); drawTasks(); drawFlashcards(); setTimerDisplay();
+  updateProfileButton(); applyProfileSettings(); drawTasks(); drawFlashcards(); setTimerDisplay();
   helperSetup();
 })();
 
