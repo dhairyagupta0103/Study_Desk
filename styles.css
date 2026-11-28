@@ -12,3 +12,10 @@
 .study-ai-card{margin-top:16px}.study-ai-form{margin-top:18px}.study-ai-form .field-control{margin-bottom:14px}.study-ai-notes{height:auto;min-height:120px;padding:10px 12px;resize:vertical;line-height:1.55}.study-ai-check{margin:0 0 10px;min-height:0}.study-ai-form .button:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;transform:none}.study-ai-privacy,.study-ai-status{font-size:10px;line-height:1.6;color:#91999c;margin:11px 0 0}.study-ai-status{min-height:16px;color:#72809b}.study-ai-result[hidden],.study-ai-evidence-wrap[hidden]{display:none}.study-ai-result{margin-top:15px;padding:15px;border-radius:9px;background:#f3f1fa}.study-ai-result>.eyebrow{color:#7b70a8}.study-ai-answer{margin:8px 0 0;color:#4a4a61;font-size:12px;line-height:1.65;white-space:pre-wrap}.study-ai-evidence-wrap{margin-top:14px;padding-top:11px;border-top:1px solid #e0dced}.study-ai-evidence-wrap strong{font-size:9px;color:#858097}.study-ai-evidence-wrap blockquote{margin:7px 0 0;padding:9px 11px;border-left:3px solid #b4a9d9;border-radius:0 7px 7px 0;background:#fff;color:#74718c;font-size:10px;line-height:1.6}
 .ai-games-card{max-width:800px;margin-top:20px}.ai-games-card .study-ai-form{margin-top:17px}.ai-games-card .study-ai-check{min-height:0}.ai-games-card .play-ai-games{margin-top:4px}.puzzle-evidence{margin:14px 0 12px;padding:10px 12px;border-left:3px solid #b4a9d9;border-radius:0 7px 7px 0;background:#f4f2fa;color:#74718c;font-size:10px;line-height:1.6;white-space:pre-wrap}.puzzle-evidence[hidden]{display:none}
 
+
+/* Personal themes: chosen in the profile panel and saved on this device. */
+body[data-theme="mint"]{--blue:#568a6d;--blue-soft:#e8f3eb}
+body[data-theme="lilac"]{--blue:#8573b4;--blue-soft:#f0edf8}
+body[data-theme="peach"]{--blue:#b77c56;--blue-soft:#f8eee7}
+body[data-theme] .nav-item.active{background:var(--blue-soft);color:var(--blue)}
+body[data-theme] h1 em{color:var(--blue)}
