@@ -888,7 +888,8 @@
   $('#profile-open').addEventListener('click', () => {
     $('#profile-name').value = state.profileName;
     $('#welcome-message').value = state.welcomeMessage;
-    $('#desk-theme').value = AVAILABLE_THEMES.includes(state.theme) ? state.theme : 'blue';
+    const selectedTheme = AVAILABLE_THEMES.includes(state.theme) ? state.theme : 'blue';
+    $$('input[name="desk-theme"]').forEach(option => { option.checked = option.value === selectedTheme; });
     $('#profile-dialog').showModal();
     $('#profile-name').focus();
   });
@@ -898,7 +899,8 @@
     event.preventDefault();
     state.profileName = $('#profile-name').value.trim();
     state.welcomeMessage = $('#welcome-message').value.trim();
-    state.theme = AVAILABLE_THEMES.includes($('#desk-theme').value) ? $('#desk-theme').value : 'blue';
+    const chosenTheme = $('input[name="desk-theme"]:checked')?.value;
+    state.theme = AVAILABLE_THEMES.includes(chosenTheme) ? chosenTheme : 'blue';
     saveState();
     updateProfileButton();
     applyProfileSettings();
