@@ -72,7 +72,7 @@
     if (!button) return;
     const name = state.profileName.trim();
     button.textContent = name ? name.charAt(0).toUpperCase() : '✿';
-    button.setAttribute('aria-label', name ? `Manage ${name}'s profile` : 'Create or manage profile');
+    button.setAttribute('aria-label', name ? `Open settings for ${name}` : 'Open settings menu');
   }
   function applyProfileSettings() {
     document.body.dataset.theme = AVAILABLE_THEMES.includes(state.theme) ? state.theme : 'blue';
@@ -886,12 +886,35 @@
     }
   });
   $('#profile-open').addEventListener('click', () => {
+    const menu = $('#profile-menu');
+    menu.hidden = !menu.hidden;
+    $('#profile-open').setAttribute('aria-expanded', String(!menu.hidden));
+    if (!menu.hidden) $('#profile-settings-open').focus();
+  });
+  $('#profile-settings-open').addEventListener('click', () => {
+    $('#profile-menu').hidden = true;
+    $('#profile-open').setAttribute('aria-expanded', 'false');
     $('#profile-name').value = state.profileName;
     $('#welcome-message').value = state.welcomeMessage;
     const selectedTheme = AVAILABLE_THEMES.includes(state.theme) ? state.theme : 'blue';
     $$('input[name="desk-theme"]').forEach(option => { option.checked = option.value === selectedTheme; });
     $('#profile-dialog').showModal();
     $('#profile-name').focus();
+  });
+  document.addEventListener('click', event => {
+    const menu = $('#profile-menu');
+    if (!menu.hidden && !$('#profile-menu-wrap').contains(event.target)) {
+      menu.hidden = true;
+      $('#profile-open').setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.addEventListener('keydown', event => {
+    const menu = $('#profile-menu');
+    if (event.key === 'Escape' && !menu.hidden) {
+      menu.hidden = true;
+      $('#profile-open').setAttribute('aria-expanded', 'false');
+      $('#profile-open').focus();
+    }
   });
   $('#profile-close').addEventListener('click', () => $('#profile-dialog').close());
   $('#profile-cancel').addEventListener('click', () => $('#profile-dialog').close());
